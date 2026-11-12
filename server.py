@@ -319,7 +319,19 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.send_header("Pragma", "no-cache")
         self.send_header("Expires", "0")
+        # Ask supporting browsers to clear HTTP cache for this origin
+        self.send_header("Clear-Site-Data", '"cache"')
         super().end_headers()
+
+    def send_head(self):
+        # Disable conditional requests so browsers always receive fresh files (no 304/cache mismatch)
+        try:
+            for h in ("If-Modified-Since", "If-None-Match"):
+                if h in self.headers:
+                    del self.headers[h]
+        except Exception:
+            pass
+        return super().send_head()
 
     def _send_json(self, obj, status=HTTPStatus.OK):
         data = json.dumps(obj).encode("utf-8")

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Clear Cache - Dorking Tool</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #0a0a0a; color: #e6e6e6; margin: 0; padding: 24px; line-height: 1.5; }
+    .card { max-width: 760px; margin: 0 auto; background: #141414; border: 1px solid #2a2a2a; border-radius: 8px; padding: 18px; }
+    h1 { margin: 0 0 8px; font-size: 20px; }
+    p, li { color: #cfcfcf; }
+    code { background: #0f0f0f; border: 1px solid #2a2a2a; padding: 1px 5px; border-radius: 4px; }
+    button { background: #e6e6e6; color: #0b0b0b; border: 0; border-radius: 6px; padding: 9px 12px; font: inherit; cursor: pointer; font-weight: 600; }
+    .muted { color: #9a9a9a; }
+    .ok { color: #9ad19a; }
+    .warn { color: #e0c98a; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+    pre { background: #0f0f0f; border: 1px solid #2a2a2a; padding: 10px; border-radius: 6px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Clear Cache / Fix Cache Error</h1>
+    <p>This page helps clear browser-side caches for the Dorking Tool (local app). If you see a cache error or the UI looks different/stale, follow these steps.</p>
+
+    <div class="row">
+      <button id="clearBtn" type="button">Clear browser caches &amp; service workers</button>
+      <button id="reloadBtn" type="button">Open app (fresh)</button>
+    </div>
+    <pre id="log" aria-live="polite">Ready.</pre>
+
+    <h2>Manual steps (recommended)</h2>
+    <ol>
+      <li><strong>Restart the server:</strong> stop <code>python run.py</code> / <code>python server.py</code> (<code>Ctrl+C</code>) and start it again.</li>
+      <li><strong>Hard refresh:</strong> open <code>http://127.0.0.1:8765/</code> and press <code>Ctrl+F5</code> (or <code>Ctrl+Shift+R</code>).</li>
+      <li><strong>Clear site data:</strong> DevTools (<code>F12</code>) → Application → Storage → <strong>Clear site data</strong> for <code>127.0.0.1:8765</code>.</li>
+      <li><strong>If needed:</strong> open in a private/incognito window, or clear cached images/files for this site in browser settings.</li>
+    </ol>
+    <p class="muted">Note: Clearing site data may remove local app state (projects/history/settings) stored in browser <code>localStorage</code> for this origin. Export important data first if needed.</p>
+  </div>
+
+  <script>
+    (function () {
+      const logEl = document.getElementById('log');
+      function log(msg) { logEl.textContent += '\n' + msg; logEl.scrollTop = logEl.scrollHeight; }
+
+      async function clearAll() {
+        logEl.textContent = 'Starting cache clear...';
+        try {
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for (const r of regs) { await r.unregister(); log('Unregistered service worker: ' + (r.scope || '(scope)')); }
+            if (!regs.length) log('No service workers registered.');
+          } else {
+            log('Service workers not supported.');
+          }
+        } catch (e) { log('Service worker clear error: ' + e); }
+
+        try {
+          if (window.caches && caches.keys) {
+            const keys = await caches.keys();
+            for (const k of keys) { await caches.delete(k); log('Deleted cache: ' + k); }
+            if (!keys.length) log('No Cache Storage entries found.');
+          } else {
+            log('Cache Storage API not available.');
+          }
+        } catch (e) { log('Cache Storage clear error: ' + e); }
+
+        try {
+          // Best-effort: reload-busting navigation handled by reload button
+          log('Done. Now restart the server and open the app with Ctrl+F5.');
+          log('If the browser still shows a cache error, clear site data in DevTools for this origin.');
+        } catch (e) { log('Finish error: ' + e); }
+      }
+
+      document.getElementById('clearBtn').addEventListener('click', clearAll);
+      document.getElementById('reloadBtn').addEventListener('click', function () {
+        const url = location.origin + '/?nocache=' + Date.now();
+        location.href = url;
+      });
+    })();
+  </script>
+</body>
+</html>
