@@ -224,6 +224,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .op-item { border: 1px solid var(--border); background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; }
 .op-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .op-name { color: var(--text-strong); font-weight: 700; font-family: var(--mono); }
+.op-desc { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.45; }
 
 .empty { padding: 22px; border: 1px dashed #314255; color: var(--muted); text-align: center; background: rgba(255,255,255,0.015); border-radius: 10px; }
 .progress-bar { height: 8px; background: #0a0f14; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
