@@ -1,28 +1,8 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.pytest_cache/
-
-# Local runtime/server artifacts
-data_store/
-server_run.err
-server_run.out
-*.log
-
 # OS/editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 
-# Build outputs (keep sources)
-cpp/engine.exe
-cpp/engine
-go/engine.exe
-go/engine
-java/*.class
-rust/target/
-
-go/dorking-engine.exe
-go/dorking-engine
+# Logs
+*.log

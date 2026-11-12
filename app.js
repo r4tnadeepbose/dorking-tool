@@ -1597,13 +1597,7 @@
   function safeName(s) { return String(s||'export').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60) || 'export'; }
 
   // ---------- Imported feature helpers (packs, archive, tools) ----------
-  async function apiGet(path) {
-    const r = await fetch(path, { headers: { 'Accept': 'application/json' } });
-    const t = await r.text();
-    let j = null; try { j = JSON.parse(t); } catch { j = { ok: false, error: t || 'Invalid response' }; }
-    if (!r.ok) throw new Error((j && j.error) || ('HTTP ' + r.status));
-    return j;
-  }
+  // Browser-only helpers (no backend)
 
   function normalizePackLineToQuery(line, packName) {
     let q = String(line || '').trim();
@@ -1662,41 +1656,53 @@
   }
 
   async function loadBuiltinDorkPacks() {
-    try {
-      // Prefer server-provided packs when running via Python server
-      const data = await apiGet('/api/dorkpacks');
-      const packs = (data && data.packs) || [];
-      if (!packs.length) { toast('No built-in packs available.','warn'); return; }
-      modalForm('Load Built-in Dork Packs', (api) => {
-        const list = el('div',{class:'list'});
-        const checks = new Map();
-        packs.forEach(pk => {
-          const cb = el('input',{type:'checkbox'});
-          checks.set(pk.file, cb);
-          list.appendChild(el('label',{class:'card-item'},[
-            el('div',{class:'item-head'},[
-              el('div',{},[el('div',{class:'item-title',text:pk.name}), el('div',{class:'muted tiny',text:`${pk.count} queries • ${pk.file}`})]),
-              cb
-            ])
-          ]));
-        });
-        api.body.appendChild(el('div',{class:'desc mb8',text:'Select packs to import as custom dorks into the active project. Placeholders are normalized (site.com → {target}, Name Or Username → {keyword}).'}));
-        api.body.appendChild(list);
-        api.ok.textContent = 'Import selected';
-        api.ok.addEventListener('click', async () => {
-          let total = 0;
-          for (const pk of packs) {
-            if (!checks.get(pk.file) || !checks.get(pk.file).checked) continue;
-            await importDorkPackLines(pk.lines || [], pk.name);
-            total += (pk.lines || []).length;
-          }
-          if (!total) toast('No packs selected.','warn');
-          api.close(true);
-        });
-      });
-    } catch (e) {
-      toast('Built-in packs require the Python server mode (python server.py). You can still import .txt packs manually.', 'warn');
+    const known = [
+      { file: 'dorks/website.txt', name: 'Website' },
+      { file: 'dorks/Sosials.txt', name: 'Sosials' },
+      { file: 'dorks/PeopleUsrDork.txt', name: 'PeopleUsrDork' }
+    ];
+    const packs = [];
+    for (const pk of known) {
+      try {
+        const r = await fetch(pk.file, { cache: 'no-store' });
+        if (!r.ok) continue;
+        const text = await r.text();
+        const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+        if (lines.length) packs.push({ file: pk.file.split('/').pop(), name: pk.name, count: lines.length, lines });
+      } catch (_) { /* ignore */ }
     }
+    if (!packs.length) {
+      toast('Could not load built-in packs automatically. Use "Import dork pack (.txt)" to import from the dorks folder.', 'warn');
+      return;
+    }
+    modalForm('Load Built-in Dork Packs', (api) => {
+      const list = el('div',{class:'list'});
+      const checks = new Map();
+      packs.forEach(pk => {
+        const cb = el('input',{type:'checkbox',checked:true});
+        checks.set(pk.file, cb);
+        list.appendChild(el('label',{class:'card-item'},[
+          el('div',{class:'item-head'},[
+            el('div',{},[el('div',{class:'item-title',text:pk.name}), el('div',{class:'muted tiny',text:`${pk.count} queries • ${pk.file}`})]),
+            cb
+          ])
+        ]));
+      });
+      api.body.appendChild(el('div',{class:'desc mb8',text:'Select packs to import as custom dorks into the active project. Placeholders are normalized (site.com → {target}, Name Or Username → {keyword}).'}));
+      api.body.appendChild(list);
+      api.ok.textContent = 'Import selected';
+      api.ok.addEventListener('click', async () => {
+        let total = 0;
+        for (const pk of packs) {
+          const cb = checks.get(pk.file);
+          if (!cb || !cb.checked) continue;
+          await importDorkPackLines(pk.lines || [], pk.name);
+          total += (pk.lines || []).length;
+        }
+        if (!total) toast('No packs selected.','warn');
+        api.close(true);
+      });
+    });
   }
 
   function categorizeUrlByRules(url, rules) {
@@ -1712,21 +1718,18 @@
 
   async function loadResultsStructure() {
     try {
-      const data = await apiGet('/api/dorkpacks');
-      return (data && data.results_structure) || {};
-    } catch {
-      // try local file fetch (works when served, may work in some file contexts)
-      try { const r = await fetch('ResultsStructure.json'); if (r.ok) return await r.json(); } catch {}
-      return {
-        "Socials": ["instagram.com", "facebook.com", "twitter.com", "tiktok.com", "snapchat.com", "pinterest.com"],
-        "Work": ["linkedin.com", "glassdoor.com", "indeed.com", "crunchbase.com"],
-        "Forums": ["reddit.com", "4chan.org", "forum", "disqus.com"],
-        "News": ["nytimes.com", "cnn.com", "bbc.co.uk", "theguardian.com"],
-        "Vulnerabilities": ["exploit-db.com", "packetstormsecurity.com", "securityfocus.com", "vulndb.com"],
-        "GitHub": ["github.com", "gitlab.com", "bitbucket.org"],
-        "Personal": ["about.me", "whitepages.com", "spokeo.com", "peoplesearch.com"]
-      };
-    }
+      const r = await fetch('ResultsStructure.json', { cache: 'no-store' });
+      if (r.ok) return await r.json();
+    } catch {}
+    return {
+      "Socials": ["instagram.com", "facebook.com", "twitter.com", "tiktok.com", "snapchat.com", "pinterest.com"],
+      "Work": ["linkedin.com", "glassdoor.com", "indeed.com", "crunchbase.com"],
+      "Forums": ["reddit.com", "4chan.org", "forum", "disqus.com"],
+      "News": ["nytimes.com", "cnn.com", "bbc.co.uk", "theguardian.com"],
+      "Vulnerabilities": ["exploit-db.com", "packetstormsecurity.com", "securityfocus.com", "vulndb.com"],
+      "GitHub": ["github.com", "gitlab.com", "bitbucket.org"],
+      "Personal": ["about.me", "whitepages.com", "spokeo.com", "peoplesearch.com"]
+    };
   }
 
   // ---------- Archive / Tools (inspired by Gui-Dorking, passive/local-safe) ----------
@@ -1734,9 +1737,9 @@
     const wrap = el('div', { class: 'grid' });
 
     // Wayback archive lookup
-    const arch = panel('Wayback Archive Lookup', 'Passive lookup of archived URLs via Wayback CDX API (server-side when using Python server)');
+    const arch = panel('Wayback Archive Lookup', 'Passive lookup of archived URLs via Wayback CDX API (browser fetch; may be limited by CORS)');
     const dom = el('input',{type:'text',placeholder:'example.com'});
-    const status = el('div',{class:'help mt8',text:'Enter a domain and fetch archived URLs. Best used in Python server mode (/api/archive).'});
+    const status = el('div',{class:'help mt8',text:'Enter a domain and fetch archived URLs. Direct browser requests may be blocked by CORS on some browsers.'});
     const filterIn = el('input',{type:'search',placeholder:'Filter archived URLs'});
     const listWrap = el('div',{class:'list mt8'});
     let archiveUrls = [];
@@ -1772,13 +1775,22 @@
           archiveUrls = [];
           renderArchiveList();
           try {
-            const j = await apiGet('/api/archive?domain=' + encodeURIComponent(d));
-            archiveUrls = Array.isArray(j.urls) ? j.urls : [];
-            status.textContent = `Fetched ${j.count || archiveUrls.length} URL(s)` + (j.truncated ? ' (truncated)' : '') + '.';
+            const dd = d.trim().toLowerCase().replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//, '').split('/')[0].split('?')[0].split('#')[0];
+            if (!/^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/.test(dd)) {
+              status.textContent = 'Invalid domain.';
+              return toast('Invalid domain.','err');
+            }
+            const cdx = 'https://web.archive.org/cdx/search/cdx?url=' + encodeURIComponent(dd + '*') + '&output=json&fl=original&collapse=urlkey';
+            const r = await fetch(cdx);
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const data = await r.json();
+            const rows = Array.isArray(data) ? data.slice(1) : [];
+            archiveUrls = rows.map(row => Array.isArray(row) ? row[0] : '').filter(Boolean);
+            status.textContent = `Fetched ${archiveUrls.length} URL(s).`;
             renderArchiveList();
           } catch (e) {
-            status.textContent = 'Archive fetch failed. If you opened index.html directly, run Python server mode (python server.py) and open http://127.0.0.1:8765/ for server-side archive lookup.';
-            toast('Archive fetch failed: ' + e.message, 'err');
+            status.textContent = 'Archive fetch failed. Browser CORS or network restrictions may block direct Wayback requests. Try again later or use Wayback web search manually.';
+            toast('Archive fetch failed (CORS/network).', 'err');
           }
         }),
         btn('Copy all shown', async ()=>{
@@ -1824,11 +1836,11 @@
     catPanel._body.appendChild(catOut);
 
     // Dork packs quick info
-    const packsPanel = panel('Dork Packs (imported from Gui-Dorking resources)', 'Load website/social/people-username dork templates into Custom Dorks');
-    packsPanel._body.appendChild(el('div',{class:'desc',text:'Built-in packs are available in Python server mode via /api/dorkpacks (from ./dorks/*.txt). You can also import any .txt dork file in Custom Dorks. Placeholders like site.com and "Name Or Username" are normalized to {target}/{keyword} on import.'}));
+    const packsPanel = panel('Dork Packs', 'Load website/social/people-username dork templates into Custom Dorks');
+    packsPanel._body.appendChild(el('div',{class:'desc',text:'Built-in packs can be loaded from the local dorks folder (when available) or imported manually as .txt files in Custom Dorks. Placeholders like site.com and "Name Or Username" are normalized to {target}/{keyword} on import.'}));
     packsPanel._body.appendChild(el('div',{class:'actions mt8'},[
       btn('Go to Custom Dorks', ()=> navigate('custom')),
-      btn('Try load built-in packs', ()=> { navigate('custom'); setTimeout(()=>loadBuiltinDorkPacks(), 50); }, 'secondary')
+      btn('Load built-in packs', ()=> { navigate('custom'); setTimeout(()=>loadBuiltinDorkPacks(), 50); }, 'secondary')
     ]));
 
     wrap.appendChild(arch);
