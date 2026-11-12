@@ -129,6 +129,12 @@ python server.py
 - Validate any potential exposure through approved, lawful methods within engagement scope.
 - Report findings responsibly with clear evidence, impact analysis, and remediation guidance.
 
-## License / Attribution
+## License
 
-If a license file is present in this repository, it governs usage and distribution. Dork syntax and reconnaissance patterns are based on common, publicly known search operators and community practices; adapt and use them ethically and lawfully.
+This project is licensed under the **[MIT License](LICENSE)**.
+
+Copyright (c) 2026 Ratnadeep Bose.
+
+## Attribution
+
+Dork syntax and reconnaissance patterns are based on common, publicly known search operators and community practices; adapt and use them ethically and lawfully.
