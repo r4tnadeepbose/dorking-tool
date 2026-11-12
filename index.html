@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dorking Tool</title>
+  <style>
+    :root {
+      --bg: #0b0b0b;
+      --panel: #121212;
+      --panel-2: #181818;
+      --text: #d6d6d6;
+      --muted: #8a8a8a;
+      --accent: #cfcfcf;
+      --border: #2a2a2a;
+      --border-strong: #3a3a3a;
+      --warn-bg: #141414;
+      --warn-border: #3a3a3a;
+      --warn-text: #bdbdbd;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    header { padding: 28px 20px 8px; max-width: 1100px; margin: 0 auto; }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: #f0f0f0;
+      text-transform: uppercase;
+    }
+    .subtitle { color: var(--muted); margin: 0 0 14px; font-size: 0.9rem; }
+    .notice {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      color: #ff0000;
+      padding: 10px 12px;
+      border-radius: 2px;
+      font-size: 0.85rem;
+    }
+    .notice strong { color: #ff0000; font-weight: 600; }
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 14px 20px 36px;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 14px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 14px;
+    }
+    .card h2 {
+      font-size: 0.85rem;
+      margin: 0 0 12px;
+      font-weight: 600;
+      color: #e6e6e6;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    input[type="text"], select, textarea {
+      width: 100%;
+      background: #0e0e0e;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 8px 10px;
+      font: inherit;
+      font-size: 0.9rem;
+    }
+    input[type="text"]:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--border-strong);
+      background: #101010;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    .row { margin-bottom: 12px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      background: #dcdcdc;
+      color: #0b0b0b;
+      border: 1px solid #dcdcdc;
+      border-radius: 2px;
+      padding: 8px 12px;
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #efefef; }
+    button.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+    }
+    button.secondary:hover { background: #1a1a1a; color: #f0f0f0; }
+    .hint { color: var(--muted); font-size: 0.78rem; margin-top: 5px; }
+    .hint code, .cheatsheet code { color: #d0d0d0; background: #0a0a0a; border: 1px solid var(--border); padding: 0 4px; border-radius: 2px; }
+    .results-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .count { color: var(--muted); font-size: 0.8rem; }
+    .toolbar { margin-bottom: 10px; }
+    .toolbar input { max-width: 360px; }
+    .dork-list { display: grid; gap: 8px; }
+    .dork {
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 10px 12px;
+      background: var(--panel-2);
+    }
+    .dork .meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .dork .meta strong { font-size: 0.88rem; font-weight: 600; color: #ececec; }
+    .tag {
+      font-size: 0.72rem;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 2px;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .query {
+      font-size: 0.85rem;
+      color: #c8c8c8;
+      word-break: break-word;
+      margin: 6px 0 8px;
+      padding: 6px 8px;
+      background: #0e0e0e;
+      border: 1px solid #222;
+      border-radius: 2px;
+    }
+    .dork .links { display: flex; gap: 8px; flex-wrap: wrap; }
+    a.btn, .btn-link {
+      text-decoration: none;
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      padding: 5px 9px;
+      border-radius: 2px;
+      font: inherit;
+      font-size: 0.8rem;
+      background: transparent;
+      cursor: pointer;
+    }
+    a.btn:hover, .btn-link:hover { background: #1e1e1e; color: #fff; }
+    a.btn.primary { color: #e8e8e8; border-color: #555; }
+    .empty { color: var(--muted); padding: 18px 4px; font-size: 0.9rem; }
+    details { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+    summary {
+      cursor: pointer;
+      color: #bdbdbd;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: "+"; color: var(--muted); font-weight: 600; width: 1em; display: inline-block; }
+    details[open] summary::before { content: "-"; }
+    summary:hover { color: #e0e0e0; }
+    .cheatsheet { margin-top: 10px; font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
+    .op-list { display: grid; gap: 8px; }
+    .op-item { border: 1px solid var(--border); background: #101010; border-radius: 2px; padding: 8px 9px; }
+    .op-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 3px; }
+    .op-name { color: #e2e2e2; font-weight: 600; font-size: 0.82rem; }
+    .op-desc { color: var(--muted); font-size: 0.78rem; }
+    .op-example { margin-top: 4px; color: #a8a8a8; font-size: 0.78rem; }
+    .op-example span { color: #6f6f6f; margin-right: 6px; text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.7rem; }
+    .cheatsheet .note { margin-top: 10px; font-size: 0.76rem; color: #7f7f7f; border-left: 2px solid var(--border-strong); padding-left: 8px; }
+    ::selection { background: #333; color: #fff; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Dorking Tool</h1>
+    <p class="subtitle">search query generator / authorized recon</p>
+    <div class="notice">
+      <strong>Authorized Use Only.</strong> Use these searches only against domains you own or have explicit permission to test.
+      Generates search links for reconnaissance; does not scan or exploit systems.
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Target & Options</h2>
+      <div class="row">
+        <label for="target">Target domain</label>
+        <input id="target" type="text" placeholder="example.com" value="target.com" autocomplete="off" />
+        <div class="hint">Domain/hostname (no scheme). Examples: <code>example.com</code>, <code>*.example.com</code>. Use <code>{target}</code> in custom dorks.</div>
+      </div>
+      <div class="row">
+        <label for="category">Preset category</label>
+        <select id="category"></select>
+      </div>
+      <div class="row">
+        <label for="engine">Search engine</label>
+        <select id="engine">
+          <option value="google">Google</option>
+          <option value="bing">Bing</option>
+          <option value="duckduckgo">DuckDuckGo</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="custom">Custom dork (optional, one per line)</label>
+        <textarea id="custom" placeholder="site:{target} inurl:admin&#10;site:{target} ext:pdf &quot;confidential&quot;"></textarea>
+        <div class="hint">If a line does not include <code>site:</code> or <code>{target}</code>, <code>site:{target}</code> is prepended automatically.</div>
+      </div>
+      <div class="actions">
+        <button id="generate">Generate dorks</button>
+        <button id="openAll" class="secondary" title="Open all visible result links">Open all</button>
+        <button id="copyAll" class="secondary">Copy queries</button>
+      </div>
+      <div id="status" class="hint" aria-live="polite"></div>
+
+      <details class="cheatsheet-details">
+        <summary>Operators & filters cheatsheet</summary>
+        <div class="cheatsheet">
+          <div class="op-list">
+            <div class="op-item">
+              <div class="op-name"><code>site:</code></div>
+              <div class="op-desc">Limit results to a domain or host.</div>
+              <div class="op-example"><span>Example</span><code>site:example.com</code></div>
+            </div>
+            <div class="op-item">
+              <div class="op-name"><code>inurl:</code> / <code>allinurl:</code></div>
+              <div class="op-desc">Match keyword(s) in the URL.</div>
+              <div class="op-example"><span>Example</span><code>inurl:login</code></div>
+            </div>
+            <div class="op-item">
+              <div class="op-name"><code>intitle:</code> / <code>allintitle:</code></div>
+              <div class="op-desc">Match keyword(s) in the page title.</div>
+              <div class="op-example"><span>Example</span><code>intitle:"index of"</code></div>
+            </div>
+            <div class="op-item">
+              <div class="op-name"><code>intext:</code> / <code>allintext:</code></div>
+              <div class="op-desc">Match keyword(s) in page body text.</div>
+              <div class="op-example"><span>Example</span><code>intext:"api_key"</code></div>
+            </div>
+            <div class="op-item">
+              <div class="op-name"><code>filetype:</code> / <code>ext:</code></div>
+              <div class="op-desc">Filter by file extension/type.</div>
+              <div class="op-example"><span>Example</span><code>filetype:pdf</code></div>
+            </div>
+            <div class="op-item">
+              <div class="op-name"><code>"phrase"</code></div>
+              <div class="op-desc">Match an exact phrase.</div>
+              <div class="op-example"><span>Example</span><code>"internal use only"</code></div>
+            </div>
+            <div class="op-item">
+              <div class="op-name"><code>OR</code> <code>|</code> <code>( )</code> <code>-</code></div>
+              <div class="op-desc">Combine, group, or exclude terms.</div>
+              <div class="op-example"><span>Example</span><code>login | signin -help</code></div>
+            </div>
+            <div class="op-item">
+              <div class="op-name"><code>*</code></div>
+              <div class="op-desc">Wildcard placeholder (engine-dependent).</div>
+              <div class="op-example"><span>Example</span><code>site:*.example.com</code></div>
+            </div>
+            <div class="op-item">
+              <div class="op-name"><code>cache:</code></div>
+              <div class="op-desc">View cached page (Google; may be limited/unavailable).</div>
+              <div class="op-example"><span>Example</span><code>cache:example.com</code></div>
+            </div>
+          </div>
+          <div class="note">Operator support varies by search engine. Use for authorized recon only.</div>
+        </div>
+      </details>
+    </section>
+
+    <section class="card">
+      <div class="results-header">
+        <h2>Generated dorks</h2>
+        <div id="count" class="count"></div>
+      </div>
+      <div class="toolbar">
+        <input id="filter" type="text" placeholder="Filter results (label, category, or query)" />
+      </div>
+      <div id="results" class="dork-list">
+        <div class="empty">Enter a target and click <strong>Generate dorks</strong>.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const PRESETS = [
+      { category: 'All', items: [] },
+      { category: 'Discovery & footprint', items: [
+        { label: 'All indexed pages', q: 'site:{target}' },
+        { label: 'Subdomains (indexed)', q: 'site:*.{target} -www -site:www.{target}' },
+        { label: 'Exclude common subdomain noise', q: 'site:{target} -inurl:www' },
+        { label: 'Public code mentions', q: '"{target}" (site:github.com OR site:gitlab.com OR site:bitbucket.org)' },
+        { label: 'Paste/sharing mentions', q: '"{target}" (site:pastebin.com OR site:pastetext.com OR site:hastebin.com)' },
+        { label: 'Cached page (Google)', q: 'cache:{target}' }
+      ]},
+      { category: 'Files & documents', items: [
+        { label: 'PDF documents', q: 'site:{target} filetype:pdf' },
+        { label: 'Office documents', q: 'site:{target} (filetype:doc OR filetype:docx OR filetype:xls OR filetype:xlsx OR filetype:ppt OR filetype:pptx OR filetype:csv)' },
+        { label: 'Text & readable files', q: 'site:{target} (filetype:txt OR filetype:rtf OR filetype:md)' },
+        { label: 'Presentations', q: 'site:{target} (filetype:ppt OR filetype:pptx OR filetype:key)' },
+        { label: 'Potentially sensitive docs keywords', q: 'site:{target} filetype:pdf ("confidential" OR "internal use" OR "not for distribution")' }
+      ]},
+      { category: 'Login & admin', items: [
+        { label: 'Login pages', q: 'site:{target} (inurl:login OR inurl:signin OR inurl:sign-in OR intitle:"login" OR intitle:"sign in")' },
+        { label: 'Admin portals', q: 'site:{target} (inurl:admin OR inurl:administrator OR intitle:"admin")' },
+        { label: 'Auth endpoints', q: 'site:{target} (inurl:auth OR inurl:oauth OR inurl:sso OR inurl:saml)' },
+        { label: 'Dashboards/portals', q: 'site:{target} (inurl:dashboard OR inurl:portal OR inurl:console)' },
+        { label: 'Password reset flows', q: 'site:{target} (inurl:forgot OR inurl:reset OR "forgot password")' }
+      ]},
+      { category: 'Directories & indexing', items: [
+        { label: 'Directory listings', q: 'site:{target} intitle:"index of"' },
+        { label: 'Parent directory listings', q: 'site:{target} intitle:"index of" "parent directory"' },
+        { label: 'Index of /backup or /admin', q: 'site:{target} intitle:"index of" ("/backup" OR "/admin" OR "/upload" OR "/uploads")' }
+      ]},
+      { category: 'Config, env & secrets (recon)', items: [
+        { label: '.env references', q: 'site:{target} (inurl:.env OR filetype:env OR ".env")' },
+        { label: 'Config files', q: 'site:{target} (filetype:conf OR filetype:cfg OR filetype:ini OR filetype:yaml OR filetype:yml OR filetype:toml)' },
+        { label: 'Git exposure hints', q: 'site:{target} (inurl:/.git OR ".git/config" OR intitle:"index of" ".git")' },
+        { label: 'Key/material filenames', q: 'site:{target} (filetype:pem OR filetype:key OR filetype:ppk OR "id_rsa" OR "private key")' },
+        { label: 'Secret-like keywords (broad)', q: 'site:{target} ("api_key" OR "apikey" OR "client_secret" OR "access_token" OR "authorization: bearer")' }
+      ]},
+      { category: 'Backups, logs & databases', items: [
+        { label: 'Backup/archive files', q: 'site:{target} (filetype:bak OR filetype:old OR filetype:backup OR filetype:zip OR filetype:tar OR filetype:gz OR filetype:7z)' },
+        { label: 'SQL/database dumps', q: 'site:{target} (filetype:sql OR filetype:db OR filetype:sqlite OR inurl:dump.sql OR inurl:database)' },
+        { label: 'Log files', q: 'site:{target} (filetype:log OR inurl:log OR inurl:logs)' },
+        { label: 'Debug/error traces', q: 'site:{target} ("stack trace" OR "traceback" OR "fatal error" OR "warning:" OR "exception")' }
+      ]},
+      { category: 'APIs & tech surfaces', items: [
+        { label: 'API endpoints', q: 'site:{target} (inurl:/api/ OR inurl:api.{target})' },
+        { label: 'Swagger/OpenAPI', q: 'site:{target} (inurl:swagger OR inurl:swagger-ui OR inurl:openapi.json OR inurl:api-docs OR intitle:"Swagger UI")' },
+        { label: 'GraphQL hints', q: 'site:{target} (inurl:graphql OR inurl:graphiql OR "query {" )' },
+        { label: 'Dev/staging/test hosts', q: '(site:dev.{target} OR site:staging.{target} OR site:test.{target} OR site:uat.{target})' },
+        { label: 'Common app paths', q: 'site:{target} (inurl:wp-content OR inurl:wp-admin OR inurl:phpinfo OR inurl:server-status)' }
+      ]},
+      { category: 'Target security & disclosure', items: [
+        { label: 'security.txt (well-known)', q: 'site:{target} inurl:/.well-known/security.txt' },
+        { label: 'security.txt (any path)', q: 'site:{target} inurl:security.txt' },
+        { label: 'Security policy pages', q: 'site:{target} (inurl:security OR inurl:security-policy OR intitle:"security policy")' },
+        { label: 'Responsible disclosure page', q: 'site:{target} ("responsible disclosure" OR inurl:responsible-disclosure OR inurl:vulnerability-disclosure-policy)' },
+        { label: 'Bug bounty / vulnerability reporting', q: 'site:{target} ("bug bounty" OR "vulnerability report" OR "report a vulnerability" OR inurl:bug-bounty)' },
+        { label: 'Rewards / hall of fame', q: 'site:{target} ("reward" OR "bounty" OR "hall of fame" OR "swag") ("security" OR "vulnerability" OR "disclosure")' },
+        { label: 'Report/security contact', q: 'site:{target} (inurl:/security ext:txt "contact" OR intext:"security@")' }
+      ]},
+      { category: 'Bug bounty & disclosure (global discovery)', items: [
+        { label: 'Bug bounty in URL', q: 'inurl:"/bug bounty" OR inurl:bugbounty' },
+        { label: 'Security pages', q: 'inurl:/security OR inurl:security.txt' },
+        { label: 'security.txt rewards', q: 'inurl:security.txt "reward"' },
+        { label: 'Responsible disclosure URLs', q: 'inurl:"/responsible-disclosure" OR inurl:"/responsible disclosure"' },
+        { label: 'Responsible disclosure rewards/swag/bounty', q: 'inurl:responsible-disclosure (reward OR swag OR bounty)' },
+        { label: 'Responsible disclosure hoodie', q: 'inurl:"responsible disclosure" hoodie' },
+        { label: 'Responsible disclosure hall of fame', q: '"responsible disclosure" "hall of fame"' },
+        { label: 'Responsible disclosure $50', q: 'inurl:"responsible disclosure" $50' },
+        { label: 'Responsible disclosure (Europe/white hat)', q: '"responsible disclosure" (europe OR "white hat")' },
+        { label: 'White hat program', q: '"white hat program"' },
+        { label: 'Responsible disclosure (exclude nl path)', q: 'insite:"responsible disclosure" -inurl:nl' },
+        { label: 'Responsible disclosure in text', q: 'intext:"responsible disclosure"' },
+        { label: 'Regional responsible disclosure sites', q: '("site:eu responsible disclosure" OR "site:.nl responsible disclosure")' },
+        { label: 'Responsible disclosure region filters (r=h)', q: '"responsible disclosure" (r=h:com OR r=h:nl OR r=h:uk OR r=h:eu)' },
+        { label: 'Disclosure bounty/swag/reward regions', q: '"responsible disclosure" (bounty OR swag OR reward) (r=h:nl OR r=h:uk OR r=h:eu)' },
+        { label: 'Powered by Bugcrowd (external)', q: '"powered by bugcrowd" -site:bugcrowd.com' },
+        { label: 'Submit vulnerability report', q: '"submit vulnerability report"' },
+        { label: 'Submit report / platforms', q: '"submit vulnerability report" | "powered by bugcrowd" | "powered by hackerone"' },
+        { label: 'Government responsible disclosure', q: 'site:*.gov.* "responsible disclosure"' },
+        { label: 'We take security seriously', q: 'intext:"we take security very seriously"' },
+        { label: 'responsibledisclosure.com', q: 'site:responsibledisclosure.com' },
+        { label: 'Vulnerability disclosure policy reward', q: 'inurl:"vulnerability-disclosure-policy" reward' },
+        { label: 'Vulnerability disclosure (NL/EU)', q: 'intext:"Vulnerability Disclosure" (site:nl OR site:eu)' },
+        { label: 'NL security/disclosure rewards', q: 'site:*.*.nl (intext:"security report reward" OR intext:"responsible disclosure reward")' },
+        { label: 'Security vulnerability report', q: '"security vulnerability" "report"' },
+        { label: 'Security report (URL typo variant)', q: 'inurl:"security report"' },
+        { label: 'University responsible disclosure', q: '"responsible disclosure" university OR inurl:/responsible-disclosure/ university' },
+        { label: 'Security contact in txt', q: 'inurl:/security ext:txt "contact"' },
+        { label: 'Powered by Synack', q: '"powered by synack"' },
+        { label: 'Responsible disclosure bounty text', q: 'intext:"responsible disclosure bounty"' },
+        { label: 'Private bug bounty program', q: 'inurl:"private bugbountyprogram"' },
+        { label: 'well-known security.txt', q: 'inurl:/.well-known/security ext:txt' },
+        { label: 'well-known security.txt (HackerOne)', q: 'inurl:/.well-known/security ext:txt intext:hackerone' },
+        { label: 'well-known security.txt (exclude platforms)', q: 'inurl:/.well-known/security ext:txt -hackerone -bugcrowd -synack -openbugbounty' },
+        { label: 'Reporting security issues', q: 'inurl:reporting-security-issues' },
+        { label: 'security-policy.txt', q: 'inurl:security-policy.txt ext:txt' },
+        { label: 'Bug bounty in URL paths', q: 'site:*.*.* inurl:bug inurl:bounty' },
+        { label: 'Help/support bounty or rewards', q: '(site:help.*.* inurl:bounty) OR (site:support.*.* intext:"security report reward")' },
+        { label: 'Security report monetary/reward', q: '(intext:"security report monetary" inurl:security) OR (intext:"security report reward" inurl:report)' },
+        { label: 'Security subdomain bounty', q: 'site:security.*.* inurl:bounty' },
+        { label: 'Country security report rewards', q: '(site:*.*.de inurl:bug inurl:bounty) OR (site:*.*.uk intext:"security report reward") OR (site:*.*.cn intext:"security report reward")' },
+        { label: 'Vulnerability reporting policy', q: '"vulnerability reporting policy"' },
+        { label: 'Dutch disclosure phrase (exclude NL site)', q: '"van de melding met een minimum van een" -site:responsibledisclosure.nl' },
+        { label: 'Responsible disclosure policy URL', q: 'inurl:responsible-disclosure-policy' },
+        { label: 'Found a security vulnerability', q: '"If you believe you\'ve found a security vulnerability"' },
+        { label: 'Bug bounty crypto reward text', q: 'intext:"BugBounty" intext:"BTC" intext:"reward"' },
+        { label: 'Bounty with currency mentions', q: '(intext:bounty inurl:/security) OR (inurl:"bug bounty" intext:"€" inurl:/security) OR (inurl:"bug bounty" intext:"$" inurl:/security) OR (inurl:"bug bounty" intext:"INR" inurl:/security)' },
+        { label: 'security.txt mailto (exclude common sites)', q: 'inurl:/security.txt "mailto*" -github.com -wikipedia.org -portswigger.net -magento' },
+        { label: 'Trust/report a vulnerability path', q: 'inurl:/trust/report-a-vulnerability' },
+        { label: 'EDU security vulnerability reporting', q: 'site:*.edu intext:"security report vulnerability"' },
+        { label: 'CMS bug bounty', q: '"cms" "bug bounty"' },
+        { label: 'Security issue reward/compensation', q: '("If you find a security issue" "reward") OR ("responsible disclosure" intext:"you may be eligible for monetary compensation")' },
+        { label: 'Bug bounty keywords in URL', q: 'inurl:"responsible disclosure" OR inurl:"bug bounty" OR inurl:"bugbounty"' },
+        { label: 'We offer a bounty', q: 'intext:"we offer a bounty"' },
+        { label: 'Responsible disclosure by country sites', q: '(site:*.br "responsible disclosure") OR (site:*.at "responsible disclosure") OR (site:*.be "responsible disclosure") OR (site:*.au "responsible disclosure")' },
+        { label: 'Country/TLD security.txt bounty', q: 'site:*/security.txt "bounty"' },
+        { label: 'Bug bounty INR/rupees', q: '(inurl:"bug bounty" intext:"rupees") OR (inurl:"bug bounty" intext:"₹") OR (inurl:"responsible disclosure" intext:"INR")' }
+      ]},
+      { category: 'Parameters & app behavior (recon)', items: [
+        { label: 'URLs with parameters', q: 'site:{target} inurl:?' },
+        { label: 'Redirect-related params', q: 'site:{target} (inurl:return= OR inurl:returnUrl= OR inurl:redirect= OR inurl:url= OR inurl:next=)' },
+        { label: 'Common injectable-looking params (recon)', q: 'site:{target} (inurl:id= OR inurl:pid= OR inurl:cat= OR inurl:file= OR inurl:page=)' },
+        { label: 'Search/query inputs', q: 'site:{target} (inurl:q= OR inurl:search= OR inurl:s= OR inurl:query=)' }
+      ]}
+    ];
+
+    PRESETS[0].items = PRESETS.slice(1).flatMap(g => g.items.map(i => ({ ...i, group: g.category })));
+
+    const els = {
+      target: document.getElementById('target'),
+      category: document.getElementById('category'),
+      engine: document.getElementById('engine'),
+      custom: document.getElementById('custom'),
+      filter: document.getElementById('filter'),
+      generate: document.getElementById('generate'),
+      openAll: document.getElementById('openAll'),
+      copyAll: document.getElementById('copyAll'),
+      results: document.getElementById('results'),
+      count: document.getElementById('count'),
+      status: document.getElementById('status')
+    };
+
+    function initCategories() {
+      PRESETS.forEach((g, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = `${g.category} (${g.items.length})`;
+        els.category.appendChild(opt);
+      });
+    }
+
+    function normalizeTarget(raw) {
+      return raw.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '').replace(/\s+/g, '');
+    }
+
+    function buildUrl(engine, query) {
+      const q = encodeURIComponent(query);
+      if (engine === 'bing') return `https://www.bing.com/search?q=${q}`;
+      if (engine === 'duckduckgo') return `https://duckduckgo.com/?q=${q}`;
+      return `https://www.google.com/search?q=${q}`;
+    }
+
+    function engineLabel(engine) {
+      if (engine === 'bing') return 'Bing';
+      if (engine === 'duckduckgo') return 'DuckDuckGo';
+      return 'Google';
+    }
+
+    function setStatus(msg) { els.status.textContent = msg || ''; }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function normalizeCustomLine(line, target) {
+      let q = line.replaceAll('{target}', target).trim();
+      if (!q) return '';
+      if (!/\bsite:|{target}/i.test(line) && !q.toLowerCase().includes('site:')) {
+        q = `site:${target} ${q}`;
+      }
+      return q;
+    }
+
+    function getItems(target) {
+      const group = PRESETS[Number(els.category.value)] || PRESETS[0];
+      let items = group.items.map(i => ({
+        label: i.label,
+        group: i.group || group.category,
+        query: i.q.replaceAll('{target}', target)
+      }));
+      const customLines = els.custom.value.split('\n').map(s => s.trim()).filter(Boolean);
+      customLines.forEach((line, idx) => {
+        const q = normalizeCustomLine(line, target);
+        if (q) items.push({ label: `Custom ${idx + 1}`, group: 'Custom', query: q });
+      });
+      const seen = new Set();
+      items = items.filter(it => {
+        const k = it.query.toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+      return items;
+    }
+
+    let lastItems = [];
+
+    function render() {
+      const target = normalizeTarget(els.target.value);
+      if (!target) {
+        els.results.innerHTML = '<div class="empty">Please enter a target domain.</div>';
+        els.count.textContent = '';
+        lastItems = [];
+        return;
+      }
+      lastItems = getItems(target);
+      renderList();
+      setStatus(`Generated ${lastItems.length} dork(s) for ${target}.`);
+    }
+
+    function renderList() {
+      const target = normalizeTarget(els.target.value);
+      const engine = els.engine.value;
+      const term = (els.filter.value || '').toLowerCase().trim();
+      const items = lastItems.filter(it => {
+        if (!term) return true;
+        return it.label.toLowerCase().includes(term) || it.group.toLowerCase().includes(term) || it.query.toLowerCase().includes(term);
+      });
+      els.count.textContent = `${items.length} shown${lastItems.length !== items.length ? ` / ${lastItems.length} total` : ''}`;
+      if (!items.length) {
+        els.results.innerHTML = '<div class="empty">No dorks match the current filter.</div>';
+        return;
+      }
+      els.results.innerHTML = '';
+      items.forEach((item) => {
+        const url = buildUrl(engine, item.query);
+        const div = document.createElement('div');
+        div.className = 'dork';
+        div.dataset.url = url;
+        div.dataset.query = item.query;
+        div.innerHTML = `
+          <div class="meta">
+            <strong>${escapeHtml(item.label)}</strong>
+            <span class="tag">${escapeHtml(item.group)}</span>
+          </div>
+          <div class="query">${escapeHtml(item.query)}</div>
+          <div class="links">
+            <a class="btn primary" href="${url}" target="_blank" rel="noopener noreferrer">Open in ${engineLabel(engine)}</a>
+            <button class="btn-link" type="button" data-copy>Copy query</button>
+          </div>
+        `;
+        div.querySelector('[data-copy]').addEventListener('click', async () => {
+          await copyText(item.query);
+          setStatus('Copied query to clipboard.');
+        });
+        els.results.appendChild(div);
+      });
+      if (!target) setStatus('');
+    }
+
+    async function copyText(text) {
+      try { await navigator.clipboard.writeText(text); }
+      catch {
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+      }
+    }
+
+    els.generate.addEventListener('click', render);
+    els.filter.addEventListener('input', renderList);
+    els.engine.addEventListener('change', () => { if (lastItems.length) renderList(); });
+    els.target.addEventListener('keydown', (e) => { if (e.key === 'Enter') render(); });
+    els.openAll.addEventListener('click', () => {
+      const cards = [...els.results.querySelectorAll('.dork')];
+      if (!cards.length) { setStatus('Nothing to open. Generate dorks first.'); return; }
+      if (cards.length > 15 && !confirm(`Open ${cards.length} tabs? This may be blocked by popup settings.`)) return;
+      cards.forEach(c => window.open(c.dataset.url, '_blank', 'noopener'));
+      setStatus(`Opened ${cards.length} tab(s). If blocked, allow popups for this file.`);
+    });
+    els.copyAll.addEventListener('click', async () => {
+      const queries = [...els.results.querySelectorAll('.dork')].map(c => c.dataset.query);
+      if (!queries.length) { setStatus('Nothing to copy. Generate dorks first.'); return; }
+      await copyText(queries.join('\n'));
+      setStatus(`Copied ${queries.length} quer${queries.length === 1 ? 'y' : 'ies'} to clipboard.`);
+    });
+
+    initCategories();
+  </script>
+</body>
+</html>
