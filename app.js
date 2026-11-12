@@ -1656,20 +1656,30 @@
   }
 
   async function loadBuiltinDorkPacks() {
-    const known = [
-      { file: 'dorks/website.txt', name: 'Website' },
-      { file: 'dorks/Sosials.txt', name: 'Sosials' },
-      { file: 'dorks/PeopleUsrDork.txt', name: 'PeopleUsrDork' }
-    ];
-    const packs = [];
-    for (const pk of known) {
-      try {
-        const r = await fetch(pk.file, { cache: 'no-store' });
-        if (!r.ok) continue;
-        const text = await r.text();
-        const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-        if (lines.length) packs.push({ file: pk.file.split('/').pop(), name: pk.name, count: lines.length, lines });
-      } catch (_) { /* ignore */ }
+    let packs = [];
+    // Prefer local server API when available (works reliably when using server.py/run.py)
+    try {
+      const r = await fetch('/api/dorkpacks', { cache: 'no-store', headers: { 'Accept': 'application/json' } });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && j.ok && Array.isArray(j.packs)) packs = j.packs;
+      }
+    } catch (_) {}
+    if (!packs.length) {
+      const known = [
+        { file: 'dorks/website.txt', name: 'Website' },
+        { file: 'dorks/Sosials.txt', name: 'Sosials' },
+        { file: 'dorks/PeopleUsrDork.txt', name: 'PeopleUsrDork' }
+      ];
+      for (const pk of known) {
+        try {
+          const r = await fetch(pk.file, { cache: 'no-store' });
+          if (!r.ok) continue;
+          const text = await r.text();
+          const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+          if (lines.length) packs.push({ file: pk.file.split('/').pop(), name: pk.name, count: lines.length, lines });
+        } catch (_) { /* ignore */ }
+      }
     }
     if (!packs.length) {
       toast('Could not load built-in packs automatically. Use "Import dork pack (.txt)" to import from the dorks folder.', 'warn');
@@ -1718,6 +1728,13 @@
 
   async function loadResultsStructure() {
     try {
+      const r = await fetch('/api/dorkpacks', { cache: 'no-store', headers: { 'Accept': 'application/json' } });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && j.ok && j.results_structure) return j.results_structure;
+      }
+    } catch {}
+    try {
       const r = await fetch('ResultsStructure.json', { cache: 'no-store' });
       if (r.ok) return await r.json();
     } catch {}
@@ -1739,7 +1756,7 @@
     // Wayback archive lookup
     const arch = panel('Wayback Archive Lookup', 'Passive lookup of archived URLs via Wayback CDX API (browser fetch; may be limited by CORS)');
     const dom = el('input',{type:'text',placeholder:'example.com'});
-    const status = el('div',{class:'help mt8',text:'Enter a domain and fetch archived URLs. Direct browser requests may be blocked by CORS on some browsers.'});
+    const status = el('div',{class:'help mt8',text:'Enter a domain and fetch archived URLs. When using the local server (python run.py/server.py), lookups are proxied for better reliability.'});
     const filterIn = el('input',{type:'search',placeholder:'Filter archived URLs'});
     const listWrap = el('div',{class:'list mt8'});
     let archiveUrls = [];
@@ -1780,17 +1797,29 @@
               status.textContent = 'Invalid domain.';
               return toast('Invalid domain.','err');
             }
-            const cdx = 'https://web.archive.org/cdx/search/cdx?url=' + encodeURIComponent(dd + '*') + '&output=json&fl=original&collapse=urlkey';
-            const r = await fetch(cdx);
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            const data = await r.json();
-            const rows = Array.isArray(data) ? data.slice(1) : [];
-            archiveUrls = rows.map(row => Array.isArray(row) ? row[0] : '').filter(Boolean);
-            status.textContent = `Fetched ${archiveUrls.length} URL(s).`;
+            let fetched = null;
+            // Prefer local server API when available (avoids browser CORS)
+            try {
+              const ar = await fetch('/api/archive?domain=' + encodeURIComponent(dd), { cache: 'no-store', headers: { 'Accept': 'application/json' } });
+              if (ar.ok) {
+                const aj = await ar.json();
+                if (aj && aj.ok) fetched = { urls: Array.isArray(aj.urls) ? aj.urls : [], count: aj.count, truncated: aj.truncated };
+              }
+            } catch (_) {}
+            if (!fetched) {
+              const cdx = 'https://web.archive.org/cdx/search/cdx?url=' + encodeURIComponent(dd + '*') + '&output=json&fl=original&collapse=urlkey';
+              const r = await fetch(cdx);
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              const data = await r.json();
+              const rows = Array.isArray(data) ? data.slice(1) : [];
+              fetched = { urls: rows.map(row => Array.isArray(row) ? row[0] : '').filter(Boolean) };
+            }
+            archiveUrls = fetched.urls || [];
+            status.textContent = `Fetched ${fetched.count || archiveUrls.length} URL(s)` + (fetched.truncated ? ' (truncated)' : '') + '.';
             renderArchiveList();
           } catch (e) {
-            status.textContent = 'Archive fetch failed. Browser CORS or network restrictions may block direct Wayback requests. Try again later or use Wayback web search manually.';
-            toast('Archive fetch failed (CORS/network).', 'err');
+            status.textContent = 'Archive fetch failed. Try running with the local server (python run.py) for reliable archive lookup, or try again later.';
+            toast('Archive fetch failed.', 'err');
           }
         }),
         btn('Copy all shown', async ()=>{

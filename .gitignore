@@ -6,3 +6,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Python / local runtime
+__pycache__/
+*.py[cod]
+data_store/

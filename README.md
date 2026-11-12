@@ -1,6 +1,10 @@
 # Dorking Tool — Search Engine OSINT & Reconnaissance Workbench
 
-A simple, local-first, **HTML-only** (browser-based) search-engine reconnaissance workbench for generating, organizing, prioritizing, explaining, and managing dork queries for targets you are **authorized** to assess.
+A simple, local-first **HTML-based** search-engine reconnaissance workbench for generating, organizing, prioritizing, explaining, and managing dork queries for targets you are **authorized** to assess.
+
+It runs in the browser with the same UI/UX in two ways:
+- **Browser-only:** open `index.html` directly
+- **Local server (recommended):** run `run.py` or `server.py` to serve the UI locally (improves reliability for archive lookups and built-in pack loading)
 
 > **Authorized Use Only — Passive Reconnaissance**
 >
@@ -24,7 +28,7 @@ A simple, local-first, **HTML-only** (browser-based) search-engine reconnaissanc
 | Custom Dorks | Archive / Tools |
 | --- | --- |
 | ![Custom Dorks](screenshots/05-custom-dorks.jpg) | ![Archive / Tools](screenshots/06-archive-tools.jpg) |
-| **Custom Dorks:** create/import/manage custom query templates, placeholders, bulk replace, JSON import/export, and dork-pack imports. | **Archive / Tools:** Wayback archive lookup (browser fetch; may be limited by CORS) and URL categorization using `ResultsStructure.json`. |
+| **Custom Dorks:** create/import/manage custom query templates, placeholders, bulk replace, JSON import/export, and dork-pack imports. | **Archive / Tools:** Wayback archive lookup and URL categorization using `ResultsStructure.json`. |
 
 ## Features
 
@@ -34,28 +38,38 @@ A simple, local-first, **HTML-only** (browser-based) search-engine reconnaissanc
 - **Custom Dorks** with templates, placeholders (`{target}`, `{keyword}`), import/export, bulk replace, and `.txt` pack import
 - **Projects & History** stored locally in the browser (`localStorage`)
 - **Cheatsheet & Settings** for operators/defaults/preferences
-- **Passive-safe archive/categorization helpers** (Wayback lookup and URL categorization)
+- **Passive-safe helpers** for archive lookup and URL categorization
 
-## Run (HTML-only)
+## Run
 
-1. Download/clone this folder.
-2. Open `index.html` in a modern browser.
+### Option A — Local server (recommended)
+**Requirements:** Python 3.x (stdlib only)
 
-> Keep these files/folders together: `index.html`, `styles.css`, `app.js`, `data.js`, `ResultsStructure.json`, and `dorks/` (for built-in pack loading/import support).
+```bash
+python run.py
+```
+- Starts `server.py` and opens the UI in your browser (`http://127.0.0.1:8765/` by default)
+- Stop with `Ctrl+C`
 
-### Notes
-- Data is stored locally in your browser (`localStorage`).
-- Some features that fetch local files (e.g. built-in dork packs / `ResultsStructure.json`) or external endpoints (Wayback) may be limited when opening `index.html` directly via `file://` due to browser restrictions (CORS/file access). If needed, use your browser’s local file access allowances or serve the folder with any simple static file server.
-- Use a hard refresh (`Ctrl+F5`) after updating files.
+Or run manually:
+```bash
+python server.py
+```
+
+### Option B — Browser-only
+- Open `index.html` in a modern browser
+- Keep these together: `index.html`, `styles.css`, `app.js`, `data.js`, `ResultsStructure.json`, `dorks/`
+
+## Notes
+- Data is stored locally in browser `localStorage`.
+- When using the local server, archive lookups and built-in pack loading can work more reliably.
+- After updates, use a hard refresh (`Ctrl+F5`).
 
 ## Project files
 
-- `index.html` — app shell/UI structure
-- `styles.css` — styling/theme
-- `app.js` — application logic
-- `data.js` — modules, query definitions, engines/playbooks/operators data
-- `dorks/*.txt` — dork pack templates
-- `ResultsStructure.json` — URL categorization rules
+- `index.html`, `styles.css`, `app.js`, `data.js` — frontend UI/logic (same UI/UX)
+- `server.py`, `run.py` — optional local server/launcher
+- `dorks/*.txt`, `ResultsStructure.json` — packs and categorization rules
 - `screenshots/` — README screenshots
 
 ## Legal / ethical notice
